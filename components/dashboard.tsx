@@ -70,7 +70,7 @@ export default function Dashboard() {
   const handleSignOut = async () => {
     await signOut()
     setActiveModal(null)
-    router.push("/sign-in")
+    router.push("/")
   }
 
   const openModal = (modalName: string) => {

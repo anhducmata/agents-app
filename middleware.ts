@@ -1,30 +1,36 @@
 // middleware.ts
-import { clerkMiddleware, getAuth } from "@clerk/nextjs/server"
-import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
 
-const customMiddleware = (auth: ReturnType<typeof getAuth>, req: NextRequest) => {
-  const { userId } = auth
-  const path = req.nextUrl.pathname
+// Create a matcher for public routes
+const isPublicRoute = createRouteMatcher([
+  "/",
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/forgot-password(.*)",
+  "/sso-callback(.*)",
+  "/api/webhook(.*)",
+  "/api/clerk(.*)",
+  "/_next(.*)",
+  "/favicon.ico",
+  "/assets(.*)",
+])
 
-  const publicRoutes = ["/sign-in", "/sign-up"]
-
-  if (publicRoutes.includes(path)) {
-    if (userId) {
-      return NextResponse.redirect(new URL("/", req.url))
-    }
-    return NextResponse.next()
+export default clerkMiddleware((auth, req) => {
+  // Allow access to public routes
+  if (isPublicRoute(req)) {
+    return
   }
 
-  if (!userId) {
-    return NextResponse.redirect(new URL("/sign-in", req.url))
-  }
-
-  return NextResponse.next()
-}
-
-export default clerkMiddleware(customMiddleware)
+  // Protect all other routes
+  auth.protect()
+})
 
 export const config = {
-  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
+  matcher: [
+    "/((?!.+\\.[\\w]+$|_next).*)",
+    "/",
+    "/(api|trpc)(.*)",
+    "/(_next|_static|_vercel|[\\w-]+\\.\\w+)(.*)"
+  ],
 }
+
